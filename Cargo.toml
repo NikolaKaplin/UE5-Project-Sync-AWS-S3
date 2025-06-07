@@ -1,0 +1,18 @@
+[package]
+name = "RsGet"
+version = "0.1.0"
+edition = "2024"
+build = "build.rs"
+
+[dependencies]
+tokio = { version = "1.0.3", features = ["full"] }
+aws-sdk-s3 = { version = "1.86.0", features = ["behavior-version-latest"] }
+sevenz-rust = { version = "0.5.4", features = ["compress"] }
+dotenv = "0.15.0"
+walkdir = "2.3.3"
+indicatif = "0.17.11"
+anyhow = "1.0.98"
+bytes = "1.0.1"
+
+[build-dependencies]  # <-- This is the correct section for winres
+winres = "0.1.12"
