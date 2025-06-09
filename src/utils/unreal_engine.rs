@@ -1,9 +1,17 @@
+use std::thread;
 use std::path::Path;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread::sleep;
+use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use crate::{Project};
-use crate::Router;
+use crate::utils::router::Router;
 use crate::utils::user::User;
 use ini::Ini;
+use notify_rust::Notification;
+use sysinfo::System;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Engine {
     pub versions: Vec<String>,
@@ -95,5 +103,58 @@ impl Engine {
         }
 
         Ok(projects)
+    }
+
+    pub fn find_ue_process() -> String {
+        let mut system = System::new_all();
+        system.refresh_all();
+        system.processes()
+            .iter()
+            .find(|(_, process)| process.name() == "UnrealEditor.exe")
+            .map(|(&pid, _)| pid.to_string())
+            .unwrap_or_else(|| "".to_string())
+    }
+
+    pub fn check_ue_process() -> String {
+        let check_process = thread::spawn(move || {
+            loop {
+                let process= Self::find_ue_process();
+                sleep(Duration::from_secs(10));
+                return process;
+            }
+        });
+        check_process.join().unwrap()
+    }
+    pub fn monitor_unreal_editor(stop_flag: Arc<AtomicBool>) {
+        let mut system = System::new_all();
+        let mut was_running = false;
+
+        while !stop_flag.load(Ordering::Relaxed) {
+            system.refresh_all();
+
+            let is_running = system.processes_by_name("UnrealEditor.exe".as_ref()).next().is_some();
+
+            match (is_running, was_running) {
+                (true, false) => {
+                    Notification::new()
+                        .summary("RsGet AWS Sync")
+                        .body("UnrealEditor.exe запущен!")
+                        .show()
+                        .unwrap_or_else(|e| eprintln!("Ошибка: {:?}", e));
+                    was_running = true;
+                },
+                (false, true) => {
+                    Notification::new()
+                        .summary("RsGet AWS Sync")
+                        .body("UnrealEditor.exe запущен!")
+                        .show()
+                        .unwrap_or_else(|e| eprintln!("Ошибка: {:?}", e));
+                    was_running = false;
+                },
+                _ => {}
+            }
+
+            thread::sleep(Duration::from_secs(10));
+        }
     }
 }

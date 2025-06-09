@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[derive(PartialEq)]
+#[derive(Default)]
 pub struct Project {
     pub name: String,
     pub path: String,
